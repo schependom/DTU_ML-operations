@@ -155,3 +155,73 @@ uvx cowsay -t "muuh"
 ```
 
 If you run above command without having installed `cowsay` with `uvx`, it will install it for you automatically.
+
+## Usage
+
+Clone the repo:
+
+```bash
+git clone git@github.com:schependom/DTU_ML-Operations.git
+cd DTU_ML-Operations
+```
+
+Authenticate DVC using SSH (make sure you have access to the remote):
+
+```bash
+dvc remote modify --local myremote auth ssh
+```
+
+Pull data from DVC remote:
+
+```bash
+dvc pull
+```
+
+You can use `invoke` to run common tasks. To list available tasks, run:
+
+```bash
+invoke --list
+# Available tasks:
+#
+#   build-docs        Build documentation.
+#   docker-build      Build docker images.
+#   preprocess-data   Preprocess data.
+#   serve-docs        Serve documentation.
+#   test              Run tests.
+#   train             Train model.
+```
+
+Now, to run a task, use:
+
+```bash
+invoke <task-name>
+# e.g. invoke preprocess-data
+```
+
+After preprocessing data (v2), you can push (Data Version Control [DVC]) changes to the remote with:
+
+```bash
+dvc add data
+git add data.dvc # or `git add .`
+git commit -m "Add new data"
+git tag -a v2.0 -m "Version 2.0"
+# Why tag? To mark a specific point in git history as important (e.g., a release)
+#   -a to create an annotated tag
+#   -m to add a message to the tag
+dvc push
+git push origin main --tags
+```
+
+To go back to a specific version later, you can checkout the git tag:
+
+```bash
+git switch v1.0 # or `git checkout v1.0`
+dvc checkout
+```
+
+To go back to the latest version, use:
+
+```bash
+git switch main # or `git checkout main`
+dvc checkout
+```
