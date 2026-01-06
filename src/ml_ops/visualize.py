@@ -4,16 +4,16 @@ import typer
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-from .device import DEVICE
-from .model import MyAwesomeModel
+from ml_ops.device import DEVICE
+from ml_ops.model import MyAwesomeModel
 
 
-def visualize(model_checkpoint: str, figure_name: str = "embeddings.png") -> None:
+def visualize(model_checkpoint: str = "models/model.pth", figure_name: str = "embeddings.png") -> None:
     """Visualize model predictions."""
     model: torch.nn.Module = MyAwesomeModel().to(DEVICE)
     model.load_state_dict(torch.load(model_checkpoint))
     model.eval()
-    model.fc = torch.nn.Identity()
+    model.fc1 = torch.nn.Identity()
 
     test_images = torch.load("data/processed/test_images.pt")
     test_target = torch.load("data/processed/test_target.pt")
@@ -23,8 +23,8 @@ def visualize(model_checkpoint: str, figure_name: str = "embeddings.png") -> Non
     with torch.inference_mode():
         for batch in torch.utils.data.DataLoader(test_dataset, batch_size=32):
             images, target = batch
-            predictions = model(images)
-            embeddings.append(predictions)
+            predictions = model(images.to(DEVICE))
+            embeddings.append(predictions.cpu())
             targets.append(target)
         embeddings = torch.cat(embeddings).numpy()
         targets = torch.cat(targets).numpy()

@@ -47,6 +47,9 @@ dev = [
     "ty>=0.0.9",
 ]
 
+[project.scripts]
+train = "ml_ops.train:main" # creates an executable `train` script that calls src/ml_ops/train.py:main()
+
 ## To declare which optional dependencies should be installed when
 ## executing `uv sync`, use the following section.
 # [tool.uv]

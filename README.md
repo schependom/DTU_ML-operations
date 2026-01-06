@@ -158,6 +158,8 @@ If you run above command without having installed `cowsay` with `uvx`, it will i
 
 ## Usage
 
+### Version control
+
 Clone the repo:
 
 ```bash
@@ -212,6 +214,12 @@ dvc push
 git push origin main --tags
 ```
 
+Or simply use:
+
+```bash
+invoke dvc --folder 'data' --message 'Add new data'
+```
+
 To go back to a specific version later, you can checkout the git tag:
 
 ```bash
@@ -224,4 +232,14 @@ To go back to the latest version, use:
 ```bash
 git switch main # or `git checkout main`
 dvc checkout
+```
+
+### Training
+
+To train the model, run either of the following commands:
+
+```bash
+uvr invoke train
+uvr src/ml_ops/train.py
+uvr train # because we configured a script entry point in pyproject.toml
 ```

@@ -2,9 +2,9 @@ import matplotlib.pyplot as plt
 import torch
 import typer
 
-from .data import corrupt_mnist
-from .device import DEVICE
-from .model import MyAwesomeModel
+from ml_ops.data import corrupt_mnist
+from ml_ops.device import DEVICE
+from ml_ops.model import MyAwesomeModel
 
 
 def train(lr: float = 1e-3, batch_size: int = 32, epochs: int = 10) -> None:
@@ -48,5 +48,10 @@ def train(lr: float = 1e-3, batch_size: int = 32, epochs: int = 10) -> None:
     fig.savefig("reports/figures/training_statistics.png")
 
 
-if __name__ == "__main__":
+def main():
+    """Entry point for the script."""
     typer.run(train)
+
+
+if __name__ == "__main__":
+    main()
