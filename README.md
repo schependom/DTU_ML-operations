@@ -56,6 +56,8 @@ started with Machine Learning Operations (MLOps).
 
 ## Installation and notes on using `uv`
 
+### Virtual environment
+
 Activate the virtual environment with:
 
 ```bash
@@ -80,16 +82,29 @@ Install all dependency groups with:
 uv sync --all-groups
 ```
 
+### Dependency management
+
 Add a new dependency with (or add it straight to `pyproject.toml` and run `uv sync`):
 
 ```bash
 uv add <package-name>
+# e.g. uv add numpy
 ```
+
+To add a development dependency, use:
+
+```bash
+uv add <package-name> --group dev
+# e.g. uv add pytest --group dev
+```
+
+### Running scripts
 
 Running a script inside the virtual environment can be done with:
 
 ```bash
 uv run <script-name>.py
+# e.g. uv run src/ml_ops/train.py
 ```
 
 This can get quite tedious, so we can make an alias `uvr` for this:
@@ -103,13 +118,18 @@ Now you can run scripts like this:
 
 ```bash
 uvr script.py
+# e.g. uvr src/ml_ops/train.py
 ```
+
+### Other `uv` commands
 
 Change Python version with:
 
 ```bash
 uv python pin <version>
 ```
+
+### Using `uvx` for global tools
 
 `uvx` can be used to install _tools_ (which are external command line tools, not libraries used in your code) globally on your machine. Tools include `black`, `ruff`, `pytest` or the simple `cowsay`. You can install such tools with `uvx`. For example:
 
