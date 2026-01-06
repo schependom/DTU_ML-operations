@@ -19,11 +19,16 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi==0.115.6",
+    "gdown>=5.2.0",
     "torch==2.6.0",
     "typer==0.15.1",
     "uvicorn==0.34.0",
 ]
 
+# Optional dependency groups, which can be installed using:
+#    uv sync --group dev
+# To install all groups, use:
+#    uv sync --all-groups
 [dependency-groups]
 dev = [
     "coverage==7.6.9",
@@ -36,6 +41,10 @@ dev = [
     "mkdocstrings-python==1.12.2",
 ]
 
+## To declare which optional dependencies should be installed when
+## executing `uv sync`, use the following section.
+# [tool.uv]
+# default-groups = ["dev"]
 
 [tool.uv.sources]
 torch = [
@@ -55,3 +64,10 @@ line-length = 120
 
 [tool.coverage.run]
 omit = ["tests/*"]
+
+## If we created our project with
+##    uv init --lib,
+## then these lines would be added:
+# [build-system]
+# requires = ["uv_build>=0.9.21,<0.10.0"]
+# build-backend = "uv_build"
