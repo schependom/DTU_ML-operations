@@ -1,27 +1,49 @@
+import logging
+
 import matplotlib.pyplot as plt
 import torch
-import typer
+from hydra import main
+from omegaconf import DictConfig, OmegaConf
 
 from ml_ops.data import corrupt_mnist
 from ml_ops.device import DEVICE
 from ml_ops.model import MyAwesomeModel
 
+log = logging.getLogger(__name__)
 
-def train(lr: float = 1e-3, batch_size: int = 32, epochs: int = 10) -> None:
-    """Train a model on MNIST."""
-    print("Training day and night")
-    print(f"{lr=}, {batch_size=}, {epochs=}")
 
-    model = MyAwesomeModel().to(DEVICE)
+@main(config_path="../../configs", config_name="config", version_base=None)
+def train(cfg: DictConfig) -> None:
+    """Train a model on MNIST.
+
+    Args:
+        cfg: Hydra configuration object
+    """
+    log.info(f"Configuration:\n{OmegaConf.to_yaml(cfg)}")
+    log.info("Training day and night")
+
+    model = MyAwesomeModel(model_conf=cfg).to(DEVICE)
     train_set, _ = corrupt_mnist()
 
-    train_dataloader = torch.utils.data.DataLoader(train_set, batch_size=batch_size)
+    train_dataloader = torch.utils.data.DataLoader(train_set, batch_size=cfg.batch_size)
 
     loss_fn = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
+    # Create optimizer from config
+    optimizer_cls = torch.optim.Adam
+    if cfg.optimizer == "nesterov":
+        optimizer_cls = torch.optim.SGD
+        optimizer = optimizer_cls(
+            model.parameters(),
+            lr=cfg.learning_rate,
+            momentum=0.9,
+            nesterov=True,
+        )
+    else:  # adam (default)
+        optimizer = optimizer_cls(model.parameters(), lr=cfg.learning_rate)
 
     statistics = {"train_loss": [], "train_accuracy": []}
-    for epoch in range(epochs):
+    for epoch in range(cfg.epochs):
         model.train()
         for i, (img, target) in enumerate(train_dataloader):
             img, target = img.to(DEVICE), target.to(DEVICE)
@@ -35,22 +57,22 @@ def train(lr: float = 1e-3, batch_size: int = 32, epochs: int = 10) -> None:
             accuracy = (y_pred.argmax(dim=1) == target).float().mean().item()
             statistics["train_accuracy"].append(accuracy)
 
-            if i % 100 == 0:
-                print(f"Epoch {epoch}, iter {i}, loss: {loss.item()}")
+            if i % cfg.logging.log_interval == 0:
+                log.info(f"Epoch {epoch}, iter {i}, loss: {loss.item()}")
 
-    print("Training complete")
-    torch.save(model.state_dict(), "models/model.pth")
+    log.info("Training complete")
+    torch.save(model.state_dict(), cfg.logging.save_path)
     fig, axs = plt.subplots(1, 2, figsize=(15, 5))
     axs[0].plot(statistics["train_loss"])
     axs[0].set_title("Train loss")
     axs[1].plot(statistics["train_accuracy"])
     axs[1].set_title("Train accuracy")
-    fig.savefig("reports/figures/training_statistics.png")
+    fig.savefig(cfg.logging.figure_path)
 
 
 def main():
     """Entry point for the script."""
-    typer.run(train)
+    train()
 
 
 if __name__ == "__main__":

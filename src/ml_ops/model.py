@@ -1,17 +1,45 @@
 import torch
 from torch import nn
+from omegaconf import DictConfig
 
 
 class MyAwesomeModel(nn.Module):
     """My awesome model."""
 
-    def __init__(self) -> None:
+    def __init__(self, model_conf: DictConfig = None) -> None:
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 32, 3, 1)
-        self.conv2 = nn.Conv2d(32, 64, 3, 1)
-        self.conv3 = nn.Conv2d(64, 128, 3, 1)
-        self.dropout = nn.Dropout(0.5)
-        self.fc1 = nn.Linear(128, 10)
+        if model_conf is None:
+            # Default values for backward compatibility
+            self.conv1 = nn.Conv2d(1, 32, 3, 1)
+            self.conv2 = nn.Conv2d(32, 64, 3, 1)
+            self.conv3 = nn.Conv2d(64, 128, 3, 1)
+            self.dropout = nn.Dropout(0.5)
+            self.fc1 = nn.Linear(128, 10)
+        else:
+            # Initialize from config
+            self.conv1 = nn.Conv2d(
+                model_conf.conv1.in_channels,
+                model_conf.conv1.out_channels,
+                model_conf.conv1.kernel_size,
+                model_conf.conv1.stride,
+            )
+            self.conv2 = nn.Conv2d(
+                model_conf.conv2.in_channels,
+                model_conf.conv2.out_channels,
+                model_conf.conv2.kernel_size,
+                model_conf.conv2.stride,
+            )
+            self.conv3 = nn.Conv2d(
+                model_conf.conv3.in_channels,
+                model_conf.conv3.out_channels,
+                model_conf.conv3.kernel_size,
+                model_conf.conv3.stride,
+            )
+            self.dropout = nn.Dropout(model_conf.dropout_rate)
+            self.fc1 = nn.Linear(
+                model_conf.fc1.in_features,
+                model_conf.fc1.out_features,
+            )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass."""
