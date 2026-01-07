@@ -243,3 +243,160 @@ uvr invoke train
 uvr src/ml_ops/train.py
 uvr train # because we configured a script entry point in pyproject.toml
 ```
+
+## Containerization
+
+Docker containers provide isolated, reproducible environments for training and evaluating models. This project includes optimized Dockerfiles for both operations.
+
+### Building Docker Images
+
+Build the training image:
+
+```bash
+docker build -f dockerfiles/train.dockerfile . -t train:latest
+```
+
+Build the evaluation image:
+
+```bash
+docker build -f dockerfiles/evaluate.dockerfile . -t evaluate:latest
+```
+
+For cross-platform builds (e.g., building for AMD64 on ARM Mac):
+
+```bash
+docker build --platform linux/amd64 -f dockerfiles/train.dockerfile . -t train:latest
+```
+
+### Running Docker Containers
+
+Run training:
+
+```bash
+docker run --name experiment1 train:latest
+```
+
+Run training with custom parameters (if your train script accepts them):
+
+```bash
+docker run --name experiment2 train:latest --lr 0.01 --epochs 20
+```
+
+Run evaluation (requires model file):
+
+```bash
+docker run --name eval1 evaluate:latest models/model.pth
+```
+
+Run evaluation with mounted volumes (recommended - keeps data and models on host):
+
+```bash
+# Mount model and data directories
+docker run --name eval1 --rm \
+  -v $(pwd)/models:/models \
+  -v $(pwd)/data:/data \
+  evaluate:latest \
+  /models/model.pth
+
+# Or mount specific files
+docker run --name eval1 --rm \
+  -v $(pwd)/models/model.pth:/models/model.pth \
+  -v $(pwd)/data/processed/test_images.pt:/data/processed/test_images.pt \
+  -v $(pwd)/data/processed/test_target.pt:/data/processed/test_target.pt \
+  evaluate:latest \
+  /models/model.pth
+```
+
+### Interactive Mode
+
+Debug or explore the container interactively:
+
+```bash
+docker run --rm -it --entrypoint sh train:latest
+```
+
+### Copying Files from Container
+
+After training, copy outputs from container to host:
+
+```bash
+# Trained model
+docker cp experiment1:/models/model.pth models/model.pth
+# Training statistics figure
+docker cp experiment1:/reports/figures/training_statistics.png reports/figures/training_statistics.png
+```
+
+### Container and Image Management
+
+#### Containers
+
+List all **containers** (running and stopped):
+
+```bash
+docker ps -a
+# or `docker container ls -a`
+```
+
+Remove a specific container:
+
+```bash
+docker rm experiment1
+```
+
+Clean up stopped containers:
+
+```bash
+docker container prune
+```
+
+#### Images
+
+List all **images**:
+
+```bash
+docker images
+```
+
+Remove a specific image (only if you want to rebuild or no longer need it):
+
+```bash
+docker rmi train:latest
+```
+
+Clean up dangling images (unnamed `<none>` images from rebuilds):
+
+```bash
+docker image prune
+```
+
+#### System-wide Cleanup
+
+Clean up everything (stopped containers, dangling images, unused networks):
+
+```bash
+docker system prune
+```
+
+### Using Volumes for Persistent Storage
+
+A more efficient strategy is to mount a **volume** that is shared between the host and the container using the `-v` option. This allows you to:
+
+-   Access outputs without copying files from the container
+-   Provide inputs (data, models) without building them into the image
+-   Persist data after the container is removed
+
+Example - automatically save trained model to host:
+
+```bash
+docker run --name experiment3 --rm -v $(pwd)/models:/models train:latest
+```
+
+The model will be saved directly to your local `models/` directory.
+
+### Docker Best Practices
+
+-   **Use `--rm`**: Automatically remove containers after they exit to avoid clutter
+-   **Mount volumes**: For data and outputs instead of copying files
+-   **Use `.dockerignore`**: Exclude unnecessary files from build context for faster builds
+-   **Name your containers**: Makes them easier to reference with `--name`
+-   **Tag images properly**: Use meaningful tags beyond `latest` for versioning

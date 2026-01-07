@@ -1,0 +1,57 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints
+notebooks/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Documentation
+docs/
+*.md
+README.md
+LICENSE
+
+# CI/CD
+.github/
+
+# DVC
+.dvc/
+
+# Reports (these are outputs, not inputs)
+reports/
+
+# Models (for training image - outputs will be generated)
+models/*.pth
+
+# Large files
+*.tar.gz
+*.zip
+*.rar
