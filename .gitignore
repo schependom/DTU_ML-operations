@@ -185,3 +185,8 @@ cython_debug/
 data/
 data/*
 /data
+
+# Trained models (managed by DVC, not Git)
+models/*
+# ... except for .gitkeep
+!models/.gitkeep
