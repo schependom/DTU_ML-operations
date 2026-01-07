@@ -1739,7 +1739,6 @@ name = "ml-ops"
 version = "0.0.1"
 source = { editable = "." }
 dependencies = [
-    { name = "click" },
     { name = "dvc", extra = ["ssh"] },
     { name = "fastapi" },
     { name = "gdown" },
@@ -1768,7 +1767,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "click", specifier = "<8.2.0" },
     { name = "dvc", extras = ["ssh"], specifier = ">=3.65.0" },
     { name = "fastapi", specifier = "==0.115.6" },
     { name = "gdown", specifier = ">=5.2.0" },
