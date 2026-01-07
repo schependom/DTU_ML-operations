@@ -24,6 +24,7 @@ RUN apt update && \
 COPY pyproject.toml pyproject.toml
 COPY uv.lock uv.lock
 COPY src/ src/
+COPY configs/ configs/
 COPY data/ data/
 
 # Copy the trained model (assumes it exists on host)

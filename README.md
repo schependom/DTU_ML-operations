@@ -310,38 +310,70 @@ docker build --platform linux/arm64 -f dockerfiles/train.dockerfile . -t train:l
 Run training (using configurations in `configs/`):
 
 ```bash
-docker run --name experiment1 train:latest
+docker run --rm --name train train:latest
 ```
 
-Run training with custom parameters:
+Run training with **custom** parameters:
 
 ```bash
-docker run --name experiment2 train:latest --lr 0.01 --epochs 20
+docker run --rm --name train train:latest conv1.in_channels=1 loss_fn=cross_entropy optimizer=adam optimizer.lr=0.01
 ```
 
-Run evaluation (requires model file):
+Run trianing with a custom config file (must be included in the image or mounted as a volume):
 
 ```bash
-docker run --name eval1 evaluate:latest models/model.pth
+# assumes custom_config.yaml is in `configs/`
+docker run --rm --name train train:latest --config-name custom_config
+
+# mounts custom_config.yaml from host
+docker run --rm --name train -v $(pwd)/configs/custom_config.yaml:/configs/custom_config.yaml train:latest --config-name custom_config
 ```
 
-Run evaluation with mounted volumes (recommended - keeps data and models on host):
+Run evaluation (requires model file in image or mounted as volume):
+
+```bash
+docker run --rm --name eval evaluate:latest model_checkpoint=models/model.pth
+
+# Mounted
+docker run --rm --name eval -v $(pwd)/models/model.pth:/models/model.pth evaluate:latest model_checkpoint=/models/model.pth
+```
+
+### Mounting volumes
+
+Use volumes to share data between host and container.
+
+#### When to mount volumes?
+
+If data changes frequently, or if you want to automatically sync outputs (models, reports) to your host machine, use mounted volumes:
+
+-   Models (`models/`)
+-   Configs (`configs/`)
+
+#### When not to mount volumes?
+
+If data is static and large, or if you want a fully self-contained container, **copy** data into the image during build, don't mount volumes:
+
+-   Data (`data/`)
+-
+
+#### Examples
+
+Run evaluation with mounted volumes (keeps models and configs on host):
 
 ```bash
 # Mount model and data directories
-docker run --name eval1 --rm \
+docker run --rm --name eval \
   -v $(pwd)/models:/models \
-  -v $(pwd)/data:/data \
+  -v $(pwd)/configs:/configs \
   evaluate:latest \
-  /models/model.pth
+  model_checkpoint=/models/model.pth
 
 # Or mount specific files
-docker run --name eval1 --rm \
+docker run --rm --name eval \
   -v $(pwd)/models/model.pth:/models/model.pth \
-  -v $(pwd)/data/processed/test_images.pt:/data/processed/test_images.pt \
-  -v $(pwd)/data/processed/test_target.pt:/data/processed/test_target.pt \
+  -v $(pwd)/configs/config.yaml:/configs/config.yaml \
   evaluate:latest \
-  /models/model.pth
+  model_checkpoint=/models/model.pth
 ```
 
 ### Interactive Mode
@@ -351,6 +383,8 @@ Debug or explore the container interactively:
 ```bash
 docker run --rm -it --entrypoint sh train:latest
 ```
+
+Exit the container with the `exit` command.
 
 ### Copying Files from Container
 
@@ -362,6 +396,8 @@ docker cp experiment1:/models/model.pth models/model.pth
 # Training statistics figure
 docker cp experiment1:/reports/figures/training_statistics.png reports/figures/training_statistics.png
 ```
+
+If you mounted `models/` and `reports/` as volumes using respectively `-v $(pwd)/models:/models` and `-v $(pwd)/reports:/reports`, the files will already be on your own machine after training.
 
 ### Container and Image Management
 
@@ -377,7 +413,7 @@ docker ps -a
 Remove a specific container:
 
 ```bash
-docker rm experiment1
+docker rm train
 ```
 
 Clean up stopped containers:
@@ -414,26 +450,11 @@ Clean up everything (stopped containers, dangling images, unused networks):
 docker system prune
 ```
 
-### Using Volumes for Persistent Storage
-
-A more efficient strategy is to mount a **volume** that is shared between the host and the container using the `-v` option. This allows you to:
-
--   Access outputs without copying files from the container
--   Provide inputs (data, models) without building them into the image
--   Persist data after the container is removed
-
-Example - automatically save trained model to host:
-
-```bash
-docker run --name experiment3 --rm -v $(pwd)/models:/models train:latest
-```
-
-The model will be saved directly to your local `models/` directory.
-
 ### Docker Best Practices
 
 -   **Use `--rm`**: Automatically remove containers after they exit to avoid clutter
--   **Mount volumes**: For data and outputs instead of copying files
+-   **Mount volumes**: For **models** (`models/`), **outputs** (`reports/`) and **configs** (`configs/`) instead of copying files
+-   **Copy, and don't mount, static data**: For large, unchanging datasets (`data/`) to keep container self-contained
 -   **Use `.dockerignore`**: Exclude unnecessary files from build context for faster builds
 -   **Name your containers**: Makes them easier to reference with `--name`
 -   **Tag images properly**: Use meaningful tags beyond `latest` for versioning

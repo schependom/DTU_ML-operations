@@ -25,7 +25,7 @@ def evaluate(cfg: DictConfig) -> None:
     log.info(f"Checkpoint: {model_checkpoint}")
 
     model = MyAwesomeModel(model_conf=cfg).to(DEVICE)
-    model.load_state_dict(torch.load(model_checkpoint))
+    model.load_state_dict(torch.load(model_checkpoint, map_location=DEVICE))  # Docker doesn't support MPS!
 
     _, test_set = corrupt_mnist()
     test_dataloader = torch.utils.data.DataLoader(test_set, batch_size=cfg.batch_size)
