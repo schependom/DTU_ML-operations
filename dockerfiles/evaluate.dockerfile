@@ -16,10 +16,10 @@ RUN apt update && \
 
 ##
 # Copy our project files into the container
-#   ->  we only want the essential parts to keep 
+#   ->  we only want the essential parts to keep
 #       our Docker image as small as possible
 
-# COPY requirements.txt requirements.txt 
+# COPY requirements.txt requirements.txt
 # not needed since we use uv and pyproject.toml
 COPY pyproject.toml pyproject.toml
 COPY uv.lock uv.lock
@@ -31,7 +31,7 @@ COPY data/ data/
 # This will need to be provided when running the container
 COPY models/ models/
 
-## 
+##
 # Install our project dependencies
 # --locked      enforces strict adherence to uv.lock
 # --no-cache    disables writing temporary download/wheel files to keep image size small
