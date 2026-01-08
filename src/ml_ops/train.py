@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Any, Dict, cast
+from typing import Any, Dict, List, Tuple, cast
 
 import hydra
 import matplotlib.pyplot as plt
@@ -9,6 +9,9 @@ from dotenv import load_dotenv
 from hydra.utils import instantiate
 from loguru import logger
 from omegaconf import DictConfig, OmegaConf
+from sklearn.metrics import RocCurveDisplay, accuracy_score, f1_score, precision_score, recall_score
+from torch.utils.data import DataLoader
+from torchvision.utils import make_grid
 
 import wandb
 from ml_ops.data import corrupt_mnist
@@ -18,63 +21,72 @@ from ml_ops.model import MyAwesomeModel
 # Load environment variables immediately
 load_dotenv()
 
+# --- Helper Functions ---
+
 
 def setup_wandb(cfg: DictConfig) -> bool:
-    """Initializes Weights & Biases based on configuration and env vars.
-
-    Args:
-        cfg: The Hydra configuration object.
-
-    Returns:
-        bool: True if WandB was successfully initialized, False otherwise.
-    """
+    """Initializes Weights & Biases."""
     if not cfg.wandb.enabled:
         logger.info("WandB disabled via config.")
         return False
 
     api_key = os.getenv("WANDB_API_KEY")
     if not api_key:
-        logger.warning("WANDB_API_KEY not found in .env. Skipping WandB.")
+        logger.warning("WANDB_API_KEY not found. Skipping WandB.")
         return False
 
     try:
         wandb.login(key=api_key)
-        config_dict = cast(Dict[str, Any], OmegaConf.to_container(cfg, resolve=True))
         wandb.init(
             entity=os.getenv("WANDB_ENTITY"),
             project=os.getenv("WANDB_PROJECT"),
-            config=config_dict,
+            config=cast(Dict[str, Any], OmegaConf.to_container(cfg, resolve=True)),
         )
-        logger.success("Successfully initialized Weights & Biases.")
+        logger.success("Initialized Weights & Biases.")
         return True
     except Exception as e:
-        logger.error(f"Failed to initialize WandB: {e}. Proceeding without it.")
+        logger.error(f"Failed to initialize WandB: {e}")
         return False
 
 
-def save_plot(statistics: dict, save_path: str) -> None:
-    """Generates and saves training plots.
+def log_sample_images(dataloader: DataLoader) -> None:
+    """Logs a sample batch of images to WandB, correcting for normalization."""
+    images, _ = next(iter(dataloader))
 
-    Args:
-        statistics: Dictionary containing loss and accuracy lists.
-        save_path: Destination path for the figure.
-    """
+    # Select first 8 images
+    sample_imgs = images[:8]
+
+    # --- VISUALIZATION: Rescale to [0, 1] ---
+    # The data is normalized (mean=0, std=1) in data.py, which makes pixels < 0.
+    # We rescale using min/max of the batch to ensure values are in [0, 1] for logging.
+    sample_imgs = (sample_imgs - sample_imgs.min()) / (sample_imgs.max() - sample_imgs.min())
+
+    # Create a nice grid instead of 8 separate log entries
+    grid = make_grid(sample_imgs, nrow=4)
+
+    # Permute from (C, H, W) -> (H, W, C) for WandB/Matplotlib
+    grid_np = grid.permute(1, 2, 0).cpu().numpy()
+
+    wandb.log({"sample_inputs": wandb.Image(grid_np, caption="Input Data Sample")})
+    logger.info("Logged sample images to WandB.")
+
+
+def save_training_plot(statistics: Dict[str, List[float]], save_path: str) -> None:
+    """Saves the loss/accuracy curves to disk."""
     try:
-        # Use non-interactive backend to avoid issues on headless servers
         plt.switch_backend("agg")
-        fig, axs = plt.subplots(1, 2, figsize=(15, 5))
+        fig, axs = plt.subplots(1, 2, figsize=(12, 5))
 
-        axs[0].plot(statistics["train_loss"])
-        axs[0].set_title("Train loss")
+        axs[0].plot(statistics["train_loss"], label="Train Loss")
+        axs[0].set_title("Training Loss")
         axs[0].set_xlabel("Steps")
-        axs[0].set_ylabel("Loss")
+        axs[0].legend()
 
-        axs[1].plot(statistics["train_accuracy"])
-        axs[1].set_title("Train accuracy")
+        axs[1].plot(statistics["train_accuracy"], label="Train Acc", color="orange")
+        axs[1].set_title("Training Accuracy")
         axs[1].set_xlabel("Steps")
-        axs[1].set_ylabel("Accuracy")
+        axs[1].legend()
 
-        # Ensure directory exists
         Path(save_path).parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(save_path)
         plt.close(fig)
@@ -83,72 +95,156 @@ def save_plot(statistics: dict, save_path: str) -> None:
         logger.error(f"Failed to save plot: {e}")
 
 
+def log_roc_curves(targets: torch.Tensor, preds: torch.Tensor) -> None:
+    """Logs ROC curves for each class."""
+    try:
+        plt.switch_backend("agg")
+        fig, ax = plt.subplots(figsize=(10, 8))
+
+        for class_id in range(10):
+            # Create binary targets for One-vs-Rest
+            one_hot = (targets == class_id).float()
+            # Handle cases where a class might not be present in the batch
+            if one_hot.sum() > 0:
+                RocCurveDisplay.from_predictions(
+                    one_hot.cpu().numpy(),
+                    preds[:, class_id].cpu().numpy(),
+                    name=f"Class {class_id}",
+                    ax=ax,
+                    plot_chance_level=(class_id == 0),  # Only plot chance once
+                )
+
+        wandb.log({"roc_curves": wandb.Image(fig)})
+        plt.close(fig)
+    except Exception as e:
+        logger.error(f"Failed to log ROC curves: {e}")
+
+
+# --- Core Logic ---
+
+
+def train_one_epoch(
+    model: torch.nn.Module,
+    dataloader: DataLoader,
+    optimizer: torch.optim.Optimizer,
+    loss_fn: Any,
+    epoch: int,
+    cfg: DictConfig,
+    use_wandb: bool,
+) -> Tuple[List[float], List[float], torch.Tensor, torch.Tensor]:
+    """Runs training for a single epoch."""
+    model.train()
+    batch_losses = []
+    batch_accs = []
+    all_preds = []
+    all_targets = []
+
+    for i, (img, target) in enumerate(dataloader):
+        img, target = img.to(DEVICE), target.to(DEVICE)
+
+        optimizer.zero_grad()
+        y_pred = model(img)
+        loss = loss_fn(y_pred, target)
+        loss.backward()
+        optimizer.step()
+
+        # Metrics
+        loss_val = loss.item()
+        acc_val = (y_pred.argmax(dim=1) == target).float().mean().item()
+
+        batch_losses.append(loss_val)
+        batch_accs.append(acc_val)
+
+        # Store for epoch-level metrics (move to CPU to save GPU RAM)
+        all_preds.append(y_pred.detach().cpu())
+        all_targets.append(target.detach().cpu())
+
+        if use_wandb:
+            wandb.log({"train_loss": loss_val, "train_accuracy": acc_val, "epoch": epoch})
+
+            # Log gradients rarely (e.g., once per epoch or very large interval)
+            if i == 0:
+                grads = torch.cat([p.grad.flatten() for p in model.parameters() if p.grad is not None], 0)
+                wandb.log({"gradients": wandb.Histogram(grads.detach().cpu().numpy())})
+
+        if i % cfg.logging.log_interval == 0:
+            logger.info(f"Epoch {epoch} | Step {i} | Loss: {loss_val:.4f} | Acc: {acc_val:.2%}")
+
+    return batch_losses, batch_accs, torch.cat(all_preds), torch.cat(all_targets)
+
+
 @hydra.main(config_path="../../configs", config_name="config", version_base="1.3")
 def train(cfg: DictConfig) -> None:
-    """Main training pipeline.
-
-    Args:
-        cfg: Hydra configuration object.
-    """
+    """Main training orchestrator."""
     logger.info(f"Configuration:\n{OmegaConf.to_yaml(cfg)}")
-    logger.info(f"Using device: {DEVICE}")
 
-    # 1. Setup WandB
     use_wandb = setup_wandb(cfg)
 
-    # 2. Data & Model Setup
-    model = MyAwesomeModel(model_conf=cfg).to(DEVICE)
+    # Data & Model
     train_set, _ = corrupt_mnist()
+    train_loader = DataLoader(train_set, batch_size=cfg.batch_size, shuffle=True)
+    model = MyAwesomeModel(model_conf=cfg).to(DEVICE)
 
-    train_dataloader = torch.utils.data.DataLoader(train_set, batch_size=cfg.batch_size, shuffle=True)
-
-    loss_fn = instantiate(cfg.loss_fn)
     optimizer = instantiate(cfg.optimizer, params=model.parameters())
+    loss_fn = instantiate(cfg.loss_fn)
 
-    # 3. Training Loop
+    # Log static samples ONCE
+    if use_wandb:
+        log_sample_images(train_loader)
+
     statistics = {"train_loss": [], "train_accuracy": []}
 
-    logger.info("Starting training...")
-
     try:
+        logger.info("Starting training...")
+
         for epoch in range(cfg.epochs):
-            model.train()
-            running_loss = 0.0
+            # Run Epoch
+            losses, accs, epoch_preds, epoch_targets = train_one_epoch(
+                model, train_loader, optimizer, loss_fn, epoch, cfg, use_wandb
+            )
 
-            for i, (img, target) in enumerate(train_dataloader):
-                img, target = img.to(DEVICE), target.to(DEVICE)
+            # Update Statistics
+            statistics["train_loss"].extend(losses)
+            statistics["train_accuracy"].extend(accs)
 
-                optimizer.zero_grad()
-                y_pred = model(img)
-                loss = loss_fn(y_pred, target)
-                loss.backward()
-                optimizer.step()
-
-                # Metrics
-                current_loss = loss.item()
-                accuracy = (y_pred.argmax(dim=1) == target).float().mean().item()
-
-                statistics["train_loss"].append(current_loss)
-                statistics["train_accuracy"].append(accuracy)
-
-                if use_wandb:
-                    wandb.log({"train_loss": current_loss, "train_accuracy": accuracy, "epoch": epoch})
-
-                if i % cfg.logging.log_interval == 0:
-                    logger.info(f"Epoch {epoch} | Iter {i} | Loss: {current_loss:.4f} | Acc: {accuracy:.2%}")
+            # End of Epoch Logs
+            if use_wandb:
+                log_roc_curves(epoch_targets, epoch_preds)
 
         logger.success("Training complete.")
 
-        # 4. Save Artifacts
+        # Save Model
         save_path = Path(cfg.logging.save_path)
         save_path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(model.state_dict(), save_path)
         logger.info(f"Model saved to {save_path}")
 
-        save_plot(statistics, cfg.logging.figure_path)
+        # Final Metrics & Artifacts
+        save_training_plot(statistics, cfg.logging.figure_path)
+
+        final_preds = epoch_preds.argmax(dim=1)
+        final_accuracy = accuracy_score(epoch_targets, final_preds)
+        final_precision = precision_score(epoch_targets, final_preds, average="weighted")
+        final_recall = recall_score(epoch_targets, final_preds, average="weighted")
+        final_f1 = f1_score(epoch_targets, final_preds, average="weighted")
+
+        if use_wandb:
+            artifact = wandb.Artifact(
+                name="corrupt_mnist_model",
+                type="model",
+                description="A model trained to classify corrupt MNIST images",
+                metadata={
+                    "accuracy": final_accuracy,
+                    "precision": final_precision,
+                    "recall": final_recall,
+                    "f1": final_f1,
+                },
+            )
+            artifact.add_file(str(save_path))
+            wandb.run.log_artifact(artifact)
 
     except Exception as e:
-        logger.exception(f"Training interrupted: {e}")
+        logger.exception(f"Training failed: {e}")
     finally:
         if use_wandb:
             wandb.finish()
