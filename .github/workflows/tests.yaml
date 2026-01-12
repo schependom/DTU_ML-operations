@@ -39,23 +39,35 @@ jobs:
 
       # Download dvc data
       - uses: iterative/setup-dvc@v2
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DVC_SSH_KEY }}
+
       - name: Pull DVC data
+        shell: bash
+        env:
+          SSH_PASS: ${{ secrets.DTU_PASSWORD }}
         run: |
           mkdir -p ~/.ssh
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H $SSH_HOSTNAME >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.DVC_SSH_HOSTNAME }} >> ~/.ssh/known_hosts
 
           echo "Host gbar1" >> ~/.ssh/config
-          echo "  HostName $SSH_HOSTNAME" >> ~/.ssh/config
-          echo "  User $SSH_USERNAME" >> ~/.ssh/config
-          echo "  IdentityFile ~/.ssh/id_rsa" >> ~/.ssh/config
+          echo "  HostName ${{ secrets.DVC_SSH_HOSTNAME }}" >> ~/.ssh/config
+          echo "  User ${{ secrets.DVC_SSH_USERNAME }}" >> ~/.ssh/config
 
-          uv run dvc pull
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.DVC_SSH_KEY }}
-          SSH_HOSTNAME: ${{ secrets.DVC_SSH_HOSTNAME }}
-          SSH_USERNAME: ${{ secrets.DVC_SSH_USERNAME }}
+          # Install sshpass to support password authentication
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get update && sudo apt-get install -y sshpass
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            brew install sshpass
+          elif [ "$RUNNER_OS" == "Windows" ]; then
+             choco install sshpass
+          fi
+          
+          # Use sshpass to provide the password for dvc pull
+          uv run sshpass -p "$SSH_PASS" dvc pull
 
       # Used to be `coverage run -m pytest tests/`
       - name: Run tests & coverage
