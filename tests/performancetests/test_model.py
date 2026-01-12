@@ -29,9 +29,12 @@ def load_model(version):
 
     # Construct the full registry path
     # Structure: entity/project/collection:version
-    model_checkpoint = (
-        f"{os.getenv('WANDB_ENTITY')}/{os.getenv('WANDB_PROJECT')}/{os.getenv('WANDB_COLLECTION')}:{version}"
-    )
+    if "/" in version:
+        model_checkpoint = version
+    else:
+        model_checkpoint = (
+            f"{os.getenv('WANDB_ENTITY')}/{os.getenv('WANDB_PROJECT')}/{os.getenv('WANDB_COLLECTION')}:{version}"
+        )
 
     print(f"Downloading artifact: {model_checkpoint}")
     logdir = "."
