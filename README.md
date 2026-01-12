@@ -543,3 +543,11 @@ docker system prune
 -   **Use `.dockerignore`**: Exclude unnecessary files from build context for faster builds
 -   **Name your containers**: Makes them easier to reference with `--name`
 -   **Tag images properly**: Use meaningful tags beyond `latest` for versioning
+
+## PyTest
+
+```bash
+uv run coverage run --omit="tests/*" -m pytest tests/
+uv run coverage report -m
+uv run coverage html
+```
