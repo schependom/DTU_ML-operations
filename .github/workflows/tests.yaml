@@ -3,10 +3,10 @@ name: Unit Tests
 on:
   push:
     branches:
-      - main
+      - all
   pull_request:
     branches:
-      - main
+      - all
 
 jobs:
   test:
@@ -32,10 +32,31 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          enable-cache: true
 
       # Instead of pip install -r requirements.txt
       - name: Install dependencies
         run: uv sync --all-groups
+
+      # Download dvc data
+      - uses: iterative/setup-dvc@v2
+      - name: Pull DVC data
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H $SSH_HOSTNAME >> ~/.ssh/known_hosts
+
+          echo "Host gbar1" >> ~/.ssh/config
+          echo "  HostName $SSH_HOSTNAME" >> ~/.ssh/config
+          echo "  User $SSH_USERNAME" >> ~/.ssh/config
+          echo "  IdentityFile ~/.ssh/id_rsa" >> ~/.ssh/config
+
+          uv run dvc pull
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DVC_SSH_KEY }}
+          SSH_HOSTNAME: ${{ secrets.DVC_SSH_HOSTNAME }}
+          SSH_USERNAME: ${{ secrets.DVC_SSH_USERNAME }}
 
       # Used to be `coverage run -m pytest tests/`
       - name: Run tests & coverage
