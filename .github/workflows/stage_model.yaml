@@ -75,7 +75,7 @@ jobs:
       run: uv sync --all-groups
 
     - name: Install dvc
-      uses: ./.github/workflows/setup-dvc
+      uses: ./.github/workflows/setup-dvc.yaml
 
     - name: DVC pull
       run: |
