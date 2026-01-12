@@ -65,6 +65,9 @@ jobs:
           dvc remote modify --local $REMOTE_NAME user ${{ secrets.DVC_SSH_USERNAME }}
           dvc remote modify --local $REMOTE_NAME keyfile "$(pwd)/dvc_key_file"
           dvc remote modify --local $REMOTE_NAME password "$SSH_PASS"
+
+          # Use full hostname for DVC remote
+          dvc remote modify --local $REMOTE_NAME host ${{ secrets.DVC_SSH_HOSTNAME }}
           
           # Optional: If you need to force a specific port or host alias
           # dvc remote modify --local $REMOTE_NAME port 22
