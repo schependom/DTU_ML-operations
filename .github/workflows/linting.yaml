@@ -2,9 +2,15 @@ name: Code linting
 
 on:
   push:
-    branches: # all
+    branches:
+      - main
   pull_request:
-    branches: # all
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   format:

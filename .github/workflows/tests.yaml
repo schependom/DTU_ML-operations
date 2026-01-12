@@ -2,10 +2,15 @@ name: Unit Tests
 
 on:
   push:
-    branches: # all
-      
+    branches:
+      - main
   pull_request:
-    branches: # all
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -47,10 +52,6 @@ jobs:
           DTU_PASSWORD: ${{ secrets.DTU_PASSWORD }}
           DVC_SSH_USERNAME: ${{ secrets.DVC_SSH_USERNAME }}
           DVC_SSH_HOSTNAME: ${{ secrets.DVC_SSH_HOSTNAME }}
-
-      - name: DVC pull
-        run: |
-          uv run dvc pull
 
       - name: Pull DVC data
         run: uv run dvc pull
