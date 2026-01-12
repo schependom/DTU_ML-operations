@@ -1,32 +1,33 @@
+name: DVC Workflow
+
+on:
+  pull_request:
+    branches:
+    - main
+    paths:
+    - '**/*.dvc'
+    - '.dvc/**'
+
 jobs:
-  test:
-    runs-on: ${{ matrix.operating-system }}
-    strategy:
-      matrix:
-        # Use a consistent shell for cross-platform compatibility
-        operating-system: ["ubuntu-latest", "windows-latest", "macos-latest"]
-        python-version: ["3.12", "3.11"]
-
-    defaults:
-      run:
-        shell: bash # Force bash to ensure commands run consistently on Windows
-
+  run_data_checker:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.12"
 
       - name: Install dependencies
         run: uv sync --all-groups
-
-      - uses: iterative/setup-dvc@v2
 
       - name: Configure DVC Credentials
         env:
@@ -55,3 +56,6 @@ jobs:
 
       - name: Pull DVC data
         run: uv run dvc pull
+
+      - name: Check data statistics
+        run: uv run python src/ml_ops/dataset.py
