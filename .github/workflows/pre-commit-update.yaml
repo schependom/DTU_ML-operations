@@ -1,7 +1,9 @@
-# pre-commit auto-update workflow
-# Dependabot does not support updating pre-commit so this workflow will do that
+# Dependabot does not support updating
+# pre-commit so this workflow will do that
+
 name: Pre-commit auto-update
 
+# On main branch every day at midnight
 on:
   schedule:
     - cron: '0 0 * * *'

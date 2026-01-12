@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 import torch
 import typer
@@ -36,13 +37,16 @@ def preprocess_data(raw_dir: str, processed_dir: str) -> None:
     torch.save(test_target, f"{processed_dir}/test_target.pt")
 
 
-def corrupt_mnist() -> tuple[torch.utils.data.Dataset, torch.utils.data.Dataset]:
+def corrupt_mnist(
+    data_dir: Optional[str] = "data/processed",
+) -> tuple[torch.utils.data.Dataset, torch.utils.data.Dataset]:
     """Return train and test datasets for corrupt MNIST."""
-    train_images = torch.load("data/processed/train_images.pt")
-    train_target = torch.load("data/processed/train_target.pt")
-    test_images = torch.load("data/processed/test_images.pt")
-    test_target = torch.load("data/processed/test_target.pt")
-
+    if data_dir is None:
+        data_dir = "data/processed"
+    train_images = torch.load(f"{data_dir}/train_images.pt")
+    train_target = torch.load(f"{data_dir}/train_target.pt")
+    test_images = torch.load(f"{data_dir}/test_images.pt")
+    test_target = torch.load(f"{data_dir}/test_target.pt")
     train_set = torch.utils.data.TensorDataset(train_images, train_target)
     test_set = torch.utils.data.TensorDataset(test_images, test_target)
     return train_set, test_set

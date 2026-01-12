@@ -33,6 +33,7 @@ dependencies = [
     "wandb>=0.23.1",
     "pytorch-lightning>=2.6.0",
     "torchvision>=0.18.0",
+    "google-api-python-client>=2.187.0",
 ]
 
 # Optional dependency groups, which can be installed using:
