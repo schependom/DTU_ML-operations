@@ -20,7 +20,6 @@ jobs:
         uses: actions/checkout@v4
 
       # Now uses uv for dependency management
-      # instead of requirements.txt
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
@@ -33,7 +32,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
 
-      # Instead of pip install -r requirements.txt
       - name: Install dependencies
         run: uv sync --all-groups
 
@@ -49,36 +47,36 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           
-          # Write the SSH key to file
-          echo "$SSH_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+          # Write the SSH key to the Ed25519 file
+          echo "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
           
-          # Remove the passphrase from the key file in-place using ssh-keygen
-          # -p: change passphrase
-          # -f: key file
-          # -P: old passphrase
-          # -N: new passphrase (empty)
-          ssh-keygen -p -f ~/.ssh/id_rsa -P "$DVC_SSH_PASSPHRASE" -N ""
+          # Remove the passphrase from the new key file
+          ssh-keygen -p -f ~/.ssh/id_ed25519 -P "$DVC_SSH_PASSPHRASE" -N ""
 
           ssh-keyscan -H ${{ secrets.DVC_SSH_HOSTNAME }} >> ~/.ssh/known_hosts
 
           echo "Host gbar1" >> ~/.ssh/config
           echo "  HostName ${{ secrets.DVC_SSH_HOSTNAME }}" >> ~/.ssh/config
           echo "  User ${{ secrets.DVC_SSH_USERNAME }}" >> ~/.ssh/config
-          echo "  IdentityFile ~/.ssh/id_rsa" >> ~/.ssh/config
+          echo "  IdentityFile ~/.ssh/id_ed25519" >> ~/.ssh/config
 
-          # Install sshpass to support password authentication
-          if [ "$RUNNER_OS" == "Linux" ]; then
-            sudo apt-get install -y sshpass
-          elif [ "$RUNNER_OS" == "macOS" ]; then
-            brew install sshpass
-          elif [ "$RUNNER_OS" == "Windows" ]; then
-             choco install sshpass
+          # Check if sshpass is installed before attempting installation
+          if ! command -v sshpass &> /dev/null; then
+            echo "sshpass not found, installing..."
+            if [ "$RUNNER_OS" == "Linux" ]; then
+              sudo apt-get install -y sshpass
+            elif [ "$RUNNER_OS" == "macOS" ]; then
+              brew install sshpass
+            elif [ "$RUNNER_OS" == "Windows" ]; then
+              choco install sshpass
+            fi
+          else
+            echo "sshpass is already installed."
           fi
 
           uv run sshpass -p "$SSH_PASS" dvc pull
 
-      # Used to be `coverage run -m pytest tests/`
       - name: Run tests & coverage
         run: |
           uv run coverage run -m pytest tests/
