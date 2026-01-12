@@ -1,4 +1,6 @@
 name: Pre-commit CI
+# (currently not executed automatically,
+# since we use pre-commit.ci)
 
 # Auto integrate changes made by .pre-commit-config.yaml hooks
 #
@@ -7,12 +9,14 @@ name: Pre-commit CI
 on:
   push:
   pull_request:
+  workflow_dispatch: # run only manually
 
 jobs:
   pre-commit:
     runs-on: ubuntu-latest
     permissions:
       contents: write # Needed to push fixes back to the repo
+      workflows: write
     steps:
       - uses: actions/checkout@v4
         with:
