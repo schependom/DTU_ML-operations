@@ -1,3 +1,12 @@
+name: Unit Tests
+
+on:
+  push:
+    branches: # all
+      
+  pull_request:
+    branches: # all
+
 jobs:
   test:
     runs-on: ${{ matrix.operating-system }}
