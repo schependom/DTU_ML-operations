@@ -51,7 +51,9 @@ def load_model(version):
     # We assume the artifact contains a single .ckpt file
     file_name = artifact.files()[0].name
 
-    return MyAwesomeModel.load_from_checkpoint(checkpoint_path=f"{logdir}/{file_name}")
+    model = MyAwesomeModel()
+
+    return model.load_from_checkpoint(checkpoint_path=f"{logdir}/{file_name}")
 
 
 def test_model_speed():
