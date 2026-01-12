@@ -67,10 +67,7 @@ jobs:
           dvc remote modify --local $REMOTE_NAME password "$SSH_PASS"
 
           # Use full hostname for DVC remote
-          dvc remote modify --local $REMOTE_NAME host ${{ secrets.DVC_SSH_HOSTNAME }}
-          
-          # Optional: If you need to force a specific port or host alias
-          # dvc remote modify --local $REMOTE_NAME port 22
+          dvc remote modify --local $REMOTE_NAME url "ssh://${{ secrets.DVC_SSH_HOSTNAME }}/zhome/c3/e/221590/MLOps-storage"
 
       - name: Pull DVC data
         run: uv run dvc pull
