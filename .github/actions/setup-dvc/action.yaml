@@ -20,6 +20,16 @@ runs:
   using: "composite"
   steps:
     - uses: iterative/setup-dvc@v2
+
+    - name: Cache DVC .dvc/cache
+      uses: actions/cache@v4
+      with:
+        path: .dvc/cache
+        # Key includes OS and hash of all dvc files to invalidate when data changes
+        key: dvc-cache-${{ runner.os }}-${{ hashFiles('**/*.dvc', '**/dvc.lock') }}
+        restore-keys: |
+          dvc-cache-${{ runner.os }}-
+
     - name: Configure DVC Credentials
       shell: bash
       env:
@@ -32,6 +42,10 @@ runs:
       run: |
         # Write the key to a local file in the workspace
         echo "$SSH_KEY" > dvc_key_file
+
+        # Add known host to avoid "Host key verification failed" or interactive prompt
+        mkdir -p ~/.ssh
+        ssh-keyscan -H "$DVC_SSH_HOSTNAME" >> ~/.ssh/known_hosts
 
         if [ "$RUNNER_OS" == "Windows" ]; then
           icacls dvc_key_file //inheritance:r
