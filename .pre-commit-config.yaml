@@ -25,3 +25,5 @@ repos:
         args: [--fix]
     # Run ruff formatter
     -   id: ruff-format
+    # Check if okay now
+    -   id: ruff-check
