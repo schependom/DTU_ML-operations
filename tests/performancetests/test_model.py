@@ -10,6 +10,7 @@ The script
 import os
 import time
 
+import pytest
 import torch
 
 import wandb
@@ -66,7 +67,3 @@ def test_model_speed():
 
     # Assert 100 inferences take less than 1 second
     assert end - start < 1, f"Model too slow! Took {end - start:.4f}s"
-
-
-if __name__ == "__main__":
-    test_model_speed()

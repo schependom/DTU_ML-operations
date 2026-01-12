@@ -89,4 +89,4 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest tests/performancetests/test_model.py
+        uv run pytest tests/performancetests/test_model.py
