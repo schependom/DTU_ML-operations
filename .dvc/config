@@ -1,4 +1,7 @@
 [core]
-    remote = hpc_storage
+    remote = remote_storage
 ['remote "hpc_storage"']
     url = ssh://gbar1/zhome/c3/e/221590/MLOps-storage
+['remote "remote_storage"']
+    url = gs://ml_ops_data_bucket_vis/
+    version_aware = true
