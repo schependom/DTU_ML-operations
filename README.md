@@ -662,5 +662,5 @@ gcloud secrets add-iam-policy-binding WANDB_API_KEY \
 Now, you can use the `cloudbuild/vertex_ai_train.yaml` to run training on Vertex AI:
 
 ```bash
-gcloud builds submit . --config=cloudbuild/vertex_ai_train.yaml
+gcloud builds submit . --config=GCP/vertex_ai_train.yaml
 ```

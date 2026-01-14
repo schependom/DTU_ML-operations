@@ -45,3 +45,11 @@ jobs:
 
     - name: Submit build
       run: gcloud builds submit . --config GCP/cloudbuild.yaml --substitutions=_IMAGE_NAME="my-instance"
+
+    - name: Trigger Vertex AI Training Job
+      run: |
+        echo "Triggering Vertex AI Training Job..."
+
+    - name: Stop instance
+      run: |
+        echo "Stopping GCP instance..."
