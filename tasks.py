@@ -53,8 +53,8 @@ def dvc(ctx, folder="data", message="Add new data"):
     ctx.run(f"dvc add {folder}")
     ctx.run(f"git add {folder}.dvc .gitignore")
     ctx.run(f"git commit -m '{message}'")
-    ctx.run(f"git push")
-    ctx.run(f"dvc push")
+    ctx.run("git push")
+    ctx.run("dvc push")
 
 
 # Documentation commands

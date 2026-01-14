@@ -34,9 +34,9 @@ try:
     # Use snakeviz to open and save the visualization
     # snakeviz will create an HTML file that can be opened in a browser
     subprocess.run(["snakeviz", "-s", profile_file], cwd=os.getcwd(), check=True)
-    print(f"✓ Visualization server started!")
+    print("✓ Visualization server started!")
     print(f"  The profile data is located at: {profile_file}")
-    print(f"  Open the browser to view the interactive visualization")
+    print("  Open the browser to view the interactive visualization")
 except FileNotFoundError:
     print("ERROR: snakeviz is not installed!")
     print("Install it with: uv sync --dev")

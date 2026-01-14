@@ -3,7 +3,6 @@
 # You can open `trace.json` in Chrome by navigating to
 #   chrome://tracing and loading the file for a detailed visualization.
 
-import os
 
 import torch
 import torchvision.models as models

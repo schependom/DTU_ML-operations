@@ -1,7 +1,5 @@
 import logging
 import operator
-import os
-from typing import Optional
 
 import typer
 from dotenv import load_dotenv

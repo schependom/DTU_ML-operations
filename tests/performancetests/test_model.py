@@ -10,7 +10,6 @@ The script
 import os
 import time
 
-import pytest
 import torch
 
 import wandb

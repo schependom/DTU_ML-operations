@@ -6,7 +6,6 @@ import torch
 from torch.utils.data import Dataset
 
 from ml_ops.data import MyDataset, corrupt_mnist
-from tests import _PATH_DATA
 
 
 def test_my_dataset():

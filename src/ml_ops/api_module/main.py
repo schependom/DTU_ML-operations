@@ -2,7 +2,6 @@ import re  # for regex operations
 from contextlib import asynccontextmanager
 from enum import Enum
 from http import HTTPStatus
-from typing import Optional
 
 import cv2
 from fastapi import FastAPI, File, UploadFile
