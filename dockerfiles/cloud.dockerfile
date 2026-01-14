@@ -12,8 +12,8 @@ COPY configs/ configs/
 
 WORKDIR /
 
-ENV UV_LINK_MODE=copy
-RUN --mount=type=cache,target=/root/.cache/uv uv sync
+# Install dependencies
+RUN uv sync --all-groups --no-cache-dir
 
 RUN mkdir -p models reports/figures
 
