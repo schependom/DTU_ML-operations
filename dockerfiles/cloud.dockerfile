@@ -8,7 +8,6 @@ RUN apt update && \
 COPY pyproject.toml pyproject.toml
 COPY uv.lock uv.lock
 COPY src/ src/
-COPY data/ data/
 COPY configs/ configs/
 
 WORKDIR /
