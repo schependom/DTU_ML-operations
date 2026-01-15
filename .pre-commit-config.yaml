@@ -28,7 +28,7 @@ repos:
     -   id: ruff-check
         args:
             - "--fix"
-            - "--extend-select=I"
+            - "--extend-select=I" # Import formatting
     # Run ruff formatter
     -   id: ruff-format
 

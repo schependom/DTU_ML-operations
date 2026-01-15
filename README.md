@@ -657,10 +657,41 @@ gcloud secrets add-iam-policy-binding WANDB_API_KEY \
   --project=dtumlops-484016 \
   --member="serviceAccount:1041875805298@cloudbuild.gserviceaccount.com" \
   --role="roles/secretmanager.secretAccessor"
+
+gcloud projects add-iam-policy-binding dtumlops-484016 \
+    --member="serviceAccount:1041875805298-compute@developer.gserviceaccount.com" \
+    --role="roles/secretmanager.secretAccessor"
 ```
 
 Now, you can use the `cloudbuild/vertex_ai_train.yaml` to run training on Vertex AI:
 
 ```bash
 gcloud builds submit . --config=GCP/vertex_ai_train.yaml
+```
+
+## API Testing
+
+```bash
+export MYENDPOINT=http://localhost:8000
+# or
+export MYENDPOINT=$(gcloud run services describe my-cloud-service --region=europe-west1 --format="value(status.url)")
+```
+
+Set up the API
+
+```bash
+uvicorn --reload --port 8000 src.ml_ops.api:app
+```
+
+Load testing with
+
+```bash
+uv run locust -f tests/performancetests/locustfile.py
+```
+
+Or
+
+```bash
+locust -f tests/performancetests/locustfile.py \
+    --headless --users 10 --spawn-rate 1 --run-time 1m --host $MYENDPOINT
 ```

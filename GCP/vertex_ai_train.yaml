@@ -28,8 +28,8 @@ steps:
     - '-c'
     - |
       apk add --no-cache gettext
-      envsubst < config.yaml > config.yaml.tmp
-      mv config.yaml.tmp config.yaml
+      envsubst < configs/GCP/config_gpu.yaml > configs/GCP/config_gpu.yaml.tmp
+      mv configs/GCP/config_gpu.yaml.tmp configs/GCP/config_gpu.yaml
   # 2. Which secrets to inject into this step
   secretEnv: ['WANDB_API_KEY']
 
@@ -40,7 +40,7 @@ steps:
   args:
     - '-c'
     - |
-      cat config.yaml
+      cat configs/GCP/config_gpu.yaml
 
 - name: 'gcr.io/cloud-builders/gcloud'
   id: 'Train on vertex AI'

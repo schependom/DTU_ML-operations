@@ -11,10 +11,9 @@
 name: GCP CI/CD Pipeline
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  # only manual triggers to reduce resource consumption on GCP
+  workflow_dispatch: {}
+
 
 jobs:
   # Dummy test job
@@ -49,7 +48,9 @@ jobs:
     - name: Trigger Vertex AI Training Job
       run: |
         echo "Triggering Vertex AI Training Job..."
+        gcloud builds submit . --config GCP/vertex_ai_train.yaml
 
     - name: Stop instance
       run: |
         echo "Stopping GCP instance..."
+        gcloud compute instances stop my-instance --zone=europe-west4-a
