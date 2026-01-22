@@ -581,7 +581,7 @@ gcloud ai custom-jobs create \
     --region=europe-west4-a \
     --display-name=test-run \
     --config=configs/GCP/config_gpu.yaml \
-    --command 'python3 src/ml_ops/train.py
+    --command 'uv run python src/ml_ops/train.py
 ```
 
 Or connect with SSH:
@@ -600,7 +600,7 @@ gcloud compute instances stop my-instance --zone=europe-west4-a
 To build and push Docker image to Artifact Registry:
 
 ```bash
-gcloud builds submit . --config=cloudbuild/cloudbuild.yaml
+gcloud builds submit . --config=GCP/cloudbuild.yaml
 ```
 
 Pull Docker image from Artifact Registry:

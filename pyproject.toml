@@ -40,6 +40,8 @@ dependencies = [
     "opencv-python>=4.12.0.88",
     "httpx>=0.28.1",
     "locust>=2.43.1",
+    "evidently>=0.7.20",
+    "pandas>=2.3.3",
 ]
 
 # Optional dependency groups, which can be installed using:

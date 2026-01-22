@@ -197,3 +197,4 @@ analysis/profiling/*.prof
 log/
 wandb/
 trace.json
+model.pkl
